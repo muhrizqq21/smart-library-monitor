@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Riwayat Sistem - Smart Library Monitor AI</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+</head>
+
+<body>
+
+  <div class="wrapper">
+
+    <!-- HEADER -->
+    <header>
+
+      <div class="logo">
+        Smart <span>Library</span> Monitor AI
+      </div>
+
+      <div class="badge">
+        Capacity & Noise Detection
+      </div>
+
+    </header>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+
+      <div class="page-header-left">
+        <a href="index.html" class="btn btn-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Kembali ke Dashboard
+        </a>
+        <div>
+          <h1 class="page-title">📝 Riwayat Sistem</h1>
+          <p class="page-subtitle">Log aktivitas dan peringatan AI secara realtime dari Firebase Database</p>
+        </div>
+      </div>
+
+      <div class="page-header-right">
+        <div id="firebase-sync-status" class="firebase-sync-status">
+          <span class="sync-dot"></span>
+          <span id="sync-label">Menghubungkan...</span>
+        </div>
+        <button class="btn btn-danger" onclick="clearAllLogs()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6"/>
+          </svg>
+          Hapus Semua Log
+        </button>
+      </div>
+
+    </div>
+
+    <!-- STATS SUMMARY -->
+    <div class="stats-row">
+
+      <div class="stat-card">
+        <div class="stat-icon">📋</div>
+        <div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-label">Total Log</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">🔴</div>
+        <div>
+          <div class="stat-value" id="stat-penuh">0</div>
+          <div class="stat-label">Ruangan Penuh</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">🟡</div>
+        <div>
+          <div class="stat-value" id="stat-berisik">0</div>
+          <div class="stat-label">Suara Berisik</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">🟢</div>
+        <div>
+          <div class="stat-value" id="stat-aman">0</div>
+          <div class="stat-label">Ruangan Aman</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TABLE CARD -->
+    <div class="card table-card">
+
+      <div class="card-title table-card-title">
+        <span>📊 Log Aktivitas Sistem</span>
+        <span id="log-count-badge" class="log-count-badge">0 entri</span>
+      </div>
+
+      <div class="table-wrapper">
+
+        <table class="log-table" id="log-table">
+
+          <thead>
+            <tr>
+              <th class="col-no">No</th>
+              <th class="col-waktu">Waktu (Tanggal & Jam)</th>
+              <th class="col-status">Status / Aktivitas</th>
+              <th class="col-keterangan">Keterangan</th>
+            </tr>
+          </thead>
+
+          <tbody id="log-tbody">
+            <tr class="empty-row">
+              <td colspan="4">
+                <div class="empty-state">
+                  <div class="empty-icon">🔄</div>
+                  <div class="empty-text">Memuat data dari database...</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+      Smart Library Monitor AI - Telkom University Purwokerto 2026
+    </footer>
+
+  </div>
+
+  <!-- FIREBASE SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <script>
+    // =============================================
+    // FIREBASE CONFIG
+    // =============================================
+    const firebaseConfig = {
+      apiKey:            "AIzaSyAbnJUUO4bXgYZf-bAbXCnpsUNspaaFw6Q",
+      authDomain:        "smartlibrarydatabase-7a97d.firebaseapp.com",
+      databaseURL:       "https://smartlibrarydatabase-7a97d-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId:         "smartlibrarydatabase-7a97d",
+      storageBucket:     "smartlibrarydatabase-7a97d.firebasestorage.app",
+      messagingSenderId: "387000755469",
+      appId:             "1:387000755469:web:3140ee1b76843362e0fc44"
+    };
+
+    // Inisialisasi Firebase (cegah duplikasi jika file di-reload)
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    const db      = firebase.database();
+    const logsRef = db.ref("library_logs");
+
+    // =============================================
+    // SYNC STATUS UI
+    // =============================================
+    function setSyncStatus(connected) {
+      const dot   = document.querySelector("#firebase-sync-status .sync-dot");
+      const label = document.getElementById("sync-label");
+
+      if (connected) {
+        dot.classList.add("connected");
+        label.textContent = "Terhubung ke Database";
+      } else {
+        dot.classList.remove("connected");
+        label.textContent = "Tidak Terhubung";
+      }
+    }
+
+    db.ref(".info/connected").on("value", snap => {
+      setSyncStatus(snap.val() === true);
+    });
+
+    // =============================================
+    // HELPER: FORMAT STATUS BADGE
+    // =============================================
+    function getStatusBadge(status) {
+      const s = (status || "").toUpperCase();
+
+      if (s.includes("PENUH")) {
+        return `<span class="status-badge badge-red">${status}</span>`;
+      } else if (s.includes("BERISIK")) {
+        return `<span class="status-badge badge-yellow">${status}</span>`;
+      } else if (s.includes("AMAN") || s.includes("KONDUSIF")) {
+        return `<span class="status-badge badge-green">${status}</span>`;
+      } else if (s.includes("START") || s.includes("AKTIF") || s.includes("ONLINE")) {
+        return `<span class="status-badge badge-blue">${status}</span>`;
+      } else {
+        return `<span class="status-badge badge-gray">${status}</span>`;
+      }
+    }
+
+    // =============================================
+    // HELPER: FORMAT TIMESTAMP
+    // =============================================
+    function formatTimestamp(ts) {
+      if (!ts) return "—";
+
+      const d = new Date(ts);
+
+      const tgl = d.toLocaleDateString("id-ID", {
+        day:   "2-digit",
+        month: "long",
+        year:  "numeric"
+      });
+
+      const jam = d.toLocaleTimeString("id-ID", {
+        hour:   "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+
+      return `<span class="ts-date">${tgl}</span><span class="ts-time">${jam}</span>`;
+    }
+
+    // =============================================
+    // REALTIME LISTENER — RENDER TABLE
+    // =============================================
+    logsRef.on("value", snapshot => {
+      const tbody = document.getElementById("log-tbody");
+
+      if (!snapshot.exists()) {
+        tbody.innerHTML = `
+          <tr class="empty-row">
+            <td colspan="4">
+              <div class="empty-state">
+                <div class="empty-icon">📭</div>
+                <div class="empty-text">Belum ada data log.</div>
+                <div class="empty-sub">Aktifkan sistem di dashboard untuk mulai merekam.</div>
+              </div>
+            </td>
+          </tr>
+        `;
+
+        updateStats([]);
+        return;
+      }
+
+      // Ambil semua entri, urutkan terbaru di atas
+      const entries = [];
+
+      snapshot.forEach(child => {
+        entries.push({ key: child.key, ...child.val() });
+      });
+
+      entries.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+      updateStats(entries);
+
+      // Render rows
+      tbody.innerHTML = entries.map((entry, idx) => `
+        <tr class="log-row" style="animation-delay: ${Math.min(idx * 0.03, 0.5)}s">
+          <td class="col-no">
+            <span class="row-num">${entries.length - idx}</span>
+          </td>
+          <td class="col-waktu">${formatTimestamp(entry.timestamp)}</td>
+          <td class="col-status">${getStatusBadge(entry.status)}</td>
+          <td class="col-keterangan">${entry.keterangan || "—"}</td>
+        </tr>
+      `).join("");
+
+      // Update badge count
+      const badge = document.getElementById("log-count-badge");
+      badge.textContent = `${entries.length} entri`;
+    });
+
+    // =============================================
+    // UPDATE STATS SUMMARY
+    // =============================================
+    function updateStats(entries) {
+      document.getElementById("stat-total").textContent   = entries.length;
+      document.getElementById("stat-penuh").textContent   = entries.filter(e => (e.status || "").toUpperCase().includes("PENUH")).length;
+      document.getElementById("stat-berisik").textContent = entries.filter(e => (e.status || "").toUpperCase().includes("BERISIK")).length;
+      document.getElementById("stat-aman").textContent    = entries.filter(e => (e.status || "").toUpperCase().includes("AMAN") || (e.status || "").toUpperCase().includes("KONDUSIF")).length;
+    }
+
+    // =============================================
+    // HAPUS SEMUA LOG
+    // =============================================
+    function clearAllLogs() {
+      if (!confirm("Yakin ingin menghapus semua log? Tindakan ini tidak dapat dibatalkan.")) return;
+      logsRef.remove()
+        .then(() => console.log("Semua log berhasil dihapus."))
+        .catch(err => alert("Gagal menghapus log: " + err.message));
+    }
+  </script>
+
+</body>
+</html>

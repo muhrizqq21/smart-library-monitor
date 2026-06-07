@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Smart Library Monitor AI</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+</head>
+
+<body>
+
+  <!-- AUDIO WARNING -->
+  <audio id="warning-audio">
+    <source
+      src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"
+      type="audio/ogg"
+    />
+  </audio>
+
+  <div class="wrapper">
+
+    <!-- HEADER -->
+    <header>
+
+      <div class="logo">
+        Smart <span>Library</span> Monitor AI
+      </div>
+
+      <div class="badge">
+        Capacity & Noise Detection
+      </div>
+
+    </header>
+
+    <!-- MAIN -->
+    <div class="main-grid">
+
+      <!-- CAMERA -->
+      <div class="cam-panel safe" id="cam-panel">
+
+        <div class="cam-header">
+          <span>LIVE LIBRARY CAMERA</span>
+          <span id="clock">00:00:00</span>
+        </div>
+
+        <div class="cam-wrapper">
+
+          <video id="webcam" autoplay muted playsinline></video>
+
+          <canvas id="overlay"></canvas>
+
+          <!-- RESULT -->
+          <div id="result-overlay">
+
+            <div class="result-badge safe" id="result-badge">
+              SYSTEM READY
+            </div>
+
+          </div>
+
+          <!-- START SCREEN -->
+          <div id="start-screen">
+
+            <h2>SMART LIBRARY MONITOR</h2>
+
+            <p>
+              Sistem AI untuk mendeteksi kapasitas
+              dan kebisingan perpustakaan realtime.
+            </p>
+
+            <button class="btn" onclick="startSystem()">
+              AKTIFKAN SISTEM
+            </button>
+
+          </div>
+
+        </div>
+
+        <div class="cam-footer">
+
+          <span id="status-system">
+            Status: Offline
+          </span>
+
+          <button class="btn" onclick="stopSystem()">
+            STOP
+          </button>
+
+        </div>
+
+      </div>
+
+      <!-- SIDEBAR -->
+      <div class="sidebar">
+
+        <!-- PEOPLE -->
+        <div class="card">
+
+          <div class="card-title">
+            👥 Kapasitas Ruangan
+          </div>
+
+          <div class="card-body center">
+
+            <div class="big-number" id="people-count">
+              0
+            </div>
+
+            <div class="status-text">
+              Maksimal Kapasitas: 4 Orang
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- AUDIO -->
+        <div class="card">
+
+          <div class="card-title">
+            🔊 Deteksi Kebisingan
+          </div>
+
+          <div class="card-body">
+
+            <!-- BACKGROUND -->
+            <div style="margin-bottom:18px;">
+
+              <div class="audio-row">
+
+                <span>BACKGROUND NOISE</span>
+
+                <span id="noise-normal">
+                  0%
+                </span>
+
+              </div>
+
+              <div class="bar-bg">
+
+                <div
+                  class="bar green"
+                  id="noise-normal-bar"
+                ></div>
+
+              </div>
+
+            </div>
+
+            <!-- BERISIK -->
+            <div>
+
+              <div class="audio-row">
+
+                <span>BERISIK</span>
+
+                <span id="noise-berisik">
+                  0%
+                </span>
+
+              </div>
+
+              <div class="bar-bg">
+
+                <div
+                  class="bar yellow"
+                  id="noise-berisik-bar"
+                ></div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- STATUS -->
+        <div class="card">
+
+          <div class="card-title">
+            📌 Status Ruangan
+          </div>
+
+          <div class="card-body">
+
+            <div id="room-status">
+              Sistem belum aktif.
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- RIWAYAT SISTEM - NAVIGASI KE HALAMAN HISTORY -->
+        <div class="card nav-history-card">
+
+          <div class="card-title">
+            📝 Riwayat Sistem
+          </div>
+
+          <div class="card-body center">
+
+            <p class="nav-history-desc">
+              Semua aktivitas dan peringatan AI dicatat secara realtime ke database dan dapat dilihat di halaman riwayat.
+            </p>
+
+            <a href="history.html" class="btn btn-history">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                <polyline points="13 2 13 9 20 9"/>
+              </svg>
+              Lihat Riwayat Lengkap
+            </a>
+
+            <div id="firebase-sync-status" class="firebase-sync-status">
+              <span class="sync-dot"></span>
+              <span id="sync-label">Menghubungkan ke database...</span>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+      Smart Library Monitor AI — Telkom University Purwokerto 2026
+    </footer>
+
+  </div>
+
+  <!-- TENSORFLOW -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+
+  <!-- COCO SSD -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+  <!-- SPEECH COMMANDS-->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands"></script>
+
+  <!-- FIREBASE SDK (compat - mudah digunakan langsung di browser) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <!-- SCRIPT -->
+  <script src="script.js"></script>
+
+</body>
+</html>
