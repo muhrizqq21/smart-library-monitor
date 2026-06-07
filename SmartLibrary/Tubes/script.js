@@ -433,7 +433,7 @@ function updateSystemUI(){
 }
 
 // =====================
-// LOG — PUSH KE FIREBASE
+// LOG - PUSH KE FIREBASE
 // =====================
 
 // Keterangan default per status (dipakai jika parameter keterangan tidak disertakan)
@@ -456,7 +456,7 @@ function addLog(statusText, keterangan) {
 }
 
 function pushLog(statusText, keterangan) {
-  const ket = keterangan || keteranganDefault[statusText] || "—";
+  const ket = keterangan || keteranganDefault[statusText] || "-";
 
   logsRef.push({
     timestamp:  firebase.database.ServerValue.TIMESTAMP,
